@@ -1,0 +1,40 @@
+keystone:
+  openstack-origin: cloud:trusty-icehouse/updates
+  admin-password: openstack
+  debug: 'true'
+  log-level: DEBUG
+nova-cloud-controller:
+  openstack-origin: cloud:trusty-icehouse/updates
+  network-manager: 'Neutron'
+  quantum-security-groups: 'yes'
+  neutron-external-network: Public_Network
+nova-compute:
+  openstack-origin: cloud:trusty-icehouse/updates
+  enable-live-migration: 'True'
+  migration-auth-type: "none"
+  virt-type: kvm
+  #virt-type: lxc
+  enable-resize: 'True'
+quantum-gateway:
+  openstack-origin: cloud:trusty-icehouse/updates
+  ext-port: 'eth1'
+  plugin: ovs
+glance:
+  openstack-origin: cloud:trusty-icehouse/updates
+  ceph-osd-replication-count: 3
+openstack-dashboard:
+  openstack-origin: cloud:trusty-icehouse/updates
+cinder:
+  openstack-origin: cloud:trusty-icehouse/updates
+  block-device: None
+  ceph-osd-replication-count: 3
+  overwrite: "true"
+  glance-api-version: 2
+ceph:
+  source: cloud:trusty-icehouse/havana
+  fsid: a51ce9ea-35cd-4639-9b5e-668625d3c1d8
+  monitor-secret: AQCk5+dR6NRDMRAAKUd3B8SdAD7jLJ5nbzxXXA==
+  osd-devices: /dev/sdb
+  osd-reformat: 'True'
+ceph-radosgw:
+  source: cloud:trusty-icehouse/havana
