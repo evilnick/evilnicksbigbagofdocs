@@ -1,3 +1,5 @@
+Title:Installing OpenStack
+
 #OpenStack
 
 ##Intro
@@ -13,7 +15,7 @@ is primarily concerned with deploying a 'standard' running OpenStack system usin
    xxxxxxxxxxxxxxxxxxx
 2. Use of Juju
    xxxxxxxxxxxxxxxxxx
-3. Familiarity with local network
+3. Local network configuration
    xxxxxxxxxxxxxxxxxxxx
 
 ## Planning an installation
@@ -31,52 +33,75 @@ If for reasons of economy or otherwise you choose to use different configuration
 
 ###Create the OpenStack configuration file
 
-We will be using 
+We will be using Juju charms to deploy the component parts of OpenStack. Each charm encapsulates everything required to set up a particular service. However, the individual services have many configuration options, some of which we will want to change. 
 
+To make this task easier and more reproduceable, we will create a separate configuration file with the relevant options for all the services. This is written in a standard YAML format. 
 
-Edit /home/ubuntu/charms/openstack.yaml on the maas node adding the following configuration needed for the openstack charms:
+You can download the [openstack-config.yaml] file we will be using from here. It is also reproduced below:
 
 ```
 keystone:
-  openstack-origin: cloud:precise-folsom/updates
+  openstack-origin: cloud:trusty-icehouse/updates
   admin-password: openstack
+  debug: 'true'
+  log-level: DEBUG
 nova-cloud-controller:
-  openstack-origin: cloud:precise-folsom/updates
-  network-manager: FlatDHCPManager
-  bridge-interface: br100
-  bridge-ip: 1.1.21.9
-  bridge-netmask: 255.255.255.224
-  config-flags: ec2_private_dns_show_ip=true,flat_network_bridge=br100,public_interface=eth0
+  openstack-origin: cloud:trusty-icehouse/updates
+  network-manager: 'Neutron'
+  quantum-security-groups: 'yes'
+  neutron-external-network: Public_Network
 nova-compute:
-  openstack-origin: cloud:precise-folsom/updates
-  bridge-interface: br100
-  bridge-ip: 1.1.21.8
-  bridge-netmask: 255.255.255.224
-  flat-interface: eth0
-  config-flags: ec2_private_dns_show_ip=true,flat_network_bridge=br100,public_interface=eth0
-swift-proxy:
-  openstack-origin: cloud:precise-folsom/updates
-  country: "US"
-  state: "NJ"
-  locale: "Some locale"
-  auth-type: keystone
-swift-storage:
-  openstack-origin: cloud:precise-folsom/updates
-  block-device: sdb
-  overwrite: "true"
-  # remove overwrite: “true” after deployment so the block device is not erased if you deploy again 
+  openstack-origin: cloud:trusty-icehouse/updates
+  enable-live-migration: 'True'
+  migration-auth-type: "none"
+  virt-type: kvm
+  #virt-type: lxc
+  enable-resize: 'True'
+quantum-gateway:
+  openstack-origin: cloud:trusty-icehouse/updates
+  ext-port: 'eth1'
+  plugin: ovs
 glance:
-  openstack-origin: cloud:precise-folsom/updates
-cinder:
-  openstack-origin: cloud:precise-folsom/updates
-  block-device: sdb
-  overwrite: "true"
+  openstack-origin: cloud:trusty-icehouse/updates
+  ceph-osd-replication-count: 3
 openstack-dashboard:
-  openstack-origin: cloud:precise-folsom/updates
+  openstack-origin: cloud:trusty-icehouse/updates
+cinder:
+  openstack-origin: cloud:trusty-icehouse/updates
+  block-device: None
+  ceph-osd-replication-count: 3
+  overwrite: "true"
+  glance-api-version: 2
+ceph:
+  source: cloud:trusty-icehouse/updates
+  fsid: a51ce9ea-35cd-4639-9b5e-668625d3c1d8
+  monitor-secret: AQCk5+dR6NRDMRAAKUd3B8SdAD7jLJ5nbzxXXA==
+  osd-devices: /dev/sdb
+  osd-reformat: 'True'
+ceph-radosgw:
+  source: cloud:trusty-icehouse/havana
 ```
 
+For all services, we have configured the openstack-origin to point at the latest stable version, which at the time of writing is `cloud:trusty-icehouse/updates`. Further configuration for each service is explained below:
 
+####keystone
+admin password:
+   You should set a memorable password here to be able to access OpenStack when it is deployed
 
+debug: 
+   It is useful to set this to 'true' initially, to monitor the setup. this will produce more verbose messaging.
+   
+log-level: 
+   Similarly, setting the log-level to DEBUG means that more verbose logs can be generated. These options can be changed once the system is set up and running normally. 
+
+####nova-cloud-controller
+####nova-compute
+####quantum-gateway
+####glance
+####openstack-dashboard
+####cinder
+####ceph
+####ceph-radosgw
 
 
 
@@ -99,34 +124,7 @@ openstack-dashboard:
 
 ###allocation of services
 
-[[[diagram]]]
-We will use the following setup:
-Juju Bootstrap node
-Main service: zookeeper
 
-Nova Cloud Controller
-Main service: Nova Cloud Controller
-Other services allocated: Keystone, OpenStack Dashboard (Horizon)
-
-Swift storage node 1
-Main service: Swift Storage
-Other services allocated: Glance
-
-Swift storage nodes (2-5)
-Main service: Swift Storage
-Other services allocated: 
-
-Swift Proxy node
-Main service: Swift Proxy
-
-
-Nova Compute nodes (3-6)
-Main service: Nova Cloud Compute
-
-
-RabbitMQ node
-Main service: RabbitMQ
-Other services allocated: MySQL
 
 ### deploying services
 ####Checkout the OpenStack charms locally
@@ -379,3 +377,4 @@ paul collins
 
 [oog][http://docs.openstack.org/ops/]
 [MAAS tags]
+[openstack-config.yaml]
