@@ -181,8 +181,10 @@ $ juju add-relation keystone mysql
 
 We wait until the relation is set. After it finishes check it with juju status:
 
-$ juju status mysql
-$ juju status keystone
+```
+juju status mysql
+juju status keystone
+```
 
 If the relations are set and the services started then we proceed with the rest.
 ```
@@ -204,14 +206,7 @@ juju add-relation openstack-dashboard keystone
 juju add-relation swift-proxy swift-storage
 juju add-relation swift-proxy keystone
 ```
-Finally, the output of juju status should show the all the relations.
-
-Section
-Add relations between the OpenStack services
-Status
-PENDING | DONE
-Comments
-If there are issues or comments worth pointing out include them here, if not leave it blank.
+Finally, the output of juju status should show the all the relations
 
 
 
@@ -219,6 +214,8 @@ If there are issues or comments worth pointing out include them here, if not lea
 
 
 ###Configuring access to Openstack
+
+```
 #!/bin/bash
 
 set -e
@@ -239,7 +236,7 @@ export OS_TENANT_NAME=admin
 EOF
 
 juju scp ./nova.rc nova-cloud-controller/0:~
-
+```
 
 
 
