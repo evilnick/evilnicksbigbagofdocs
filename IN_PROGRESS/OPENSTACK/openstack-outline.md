@@ -4,6 +4,8 @@ Title:Installing OpenStack
 
 ##Intro
 
+OpenStack is a versatile, open source cloud environment equally suited to serving up public, private or hybrid clouds. Canonical is a Platinum Member of the OpenStack foundation and has been involved with the OpenStack project since its inception; the software covered in this document has been developed with the intention of providing a streamlined way to deploy and manage OpenStack installations.
+
 ### Scope of this documentation
 
 The OpenStack platform is powerful and its uses diverse. This section of documentation 
@@ -12,9 +14,11 @@ is primarily concerned with deploying a 'standard' running OpenStack system usin
 ### Assumptions
 
 1. Use of MAAS
-   xxxxxxxxxxxxxxxxxxx
+   This document is written to provide instructions on how to deploy OpenStack using MAAS for hardware provisioning. If you are not deploying directly on hardware, this method will still work, with a few alterations, assuming you have a properly configured Juju environment. The main difference will be that you will have to provide different configuration options depending on the network configuration.
+   
 2. Use of Juju
-   xxxxxxxxxxxxxxxxxx
+   This document assumes an up to date, stable release version of Juju.
+   
 3. Local network configuration
    xxxxxxxxxxxxxxxxxxxx
 
@@ -22,12 +26,14 @@ is primarily concerned with deploying a 'standard' running OpenStack system usin
 
 Before deploying any services, it is very useful to take stock of the resources available and how they are to be used. OpenStack comprises of a number of interrelated services (Nova, Swift, etc) which each have differing demands in terms of hosts. For example, the Swift service, which provides object storage, has a different requirement than the Nova service, which provides compute resources.
 
-The minimum requirements for each service and reccommendations are laid out in the official [oog][OpenStack Operations Guide] which is available (free) in HTML or various downloadable formats. For guidance, the following minimums are recommended for Ubuntu Cloud:
+The minimum requirements for each service and recommendations are laid out in the official [oog][OpenStack Operations Guide] which is available (free) in HTML or various downloadable formats. For guidance, the following minimums are recommended for Ubuntu Cloud:
 
+[insert minimum hardware spec]
 
 
 
 The recommended composition of nodes for deploying OpenStack with MAAS and Juju is that all nodes in the system should be capable of running *ANY* of the services. This is best practice for the robustness of the system, as since any physical node should fail, another can be repurposed to take its place. This obviously extends to any hardware requirements such as extra network interfaces.
+
 If for reasons of economy or otherwise you choose to use different configurations of hardware, you should note that your ability to overcome hardware failure will be reduced. It will also be necessary to target deployments to specific nodes - see the section in the MAAS documentation on tags [MAAS tags]
 
 
@@ -86,123 +92,80 @@ For all services, we have configured the openstack-origin to point at the latest
 
 ####keystone
 admin password:
-   You should set a memorable password here to be able to access OpenStack when it is deployed
+    You should set a memorable password here to be able to access OpenStack when it is deployed
 
 debug: 
-   It is useful to set this to 'true' initially, to monitor the setup. this will produce more verbose messaging.
+    It is useful to set this to 'true' initially, to monitor the setup. this will produce more verbose messaging.
    
 log-level: 
-   Similarly, setting the log-level to DEBUG means that more verbose logs can be generated. These options can be changed once the system is set up and running normally. 
+    Similarly, setting the log-level to DEBUG means that more verbose logs can be generated. These options can be changed once the system is set up and running normally. 
 
 ####nova-cloud-controller
+
+cloud-controller:
+    'Neutron' - Other options are now depricated.
+quantum-security-groups: 
+    'yes'
+neutron-external-network: 
+    Public_Network - This is an interface we will use for allowing access to the cloud, and will be defined later
+
 ####nova-compute
+enable-live-migration: 
+  We have set this to 'True'
+  migration-auth-type: "none"
+  virt-type: kvm
+  enable-resize: 'True'
 ####quantum-gateway
+  openstack-origin: cloud:trusty-icehouse/updates
+  ext-port: 'eth1'
+  plugin: ovs
 ####glance
+  openstack-origin: cloud:trusty-icehouse/updates
+  ceph-osd-replication-count: 3
 ####openstack-dashboard
+  openstack-origin: cloud:trusty-icehouse/updates
 ####cinder
+  openstack-origin: cloud:trusty-icehouse/updates
+  block-device: None
+  ceph-osd-replication-count: 3
+  overwrite: "true"
+  glance-api-version: 2
 ####ceph
+  source: cloud:trusty-icehouse/havana
+  fsid: a51ce9ea-35cd-4639-9b5e-668625d3c1d8
+  monitor-secret: AQCk5+dR6NRDMRAAKUd3B8SdAD7jLJ5nbzxXXA==
+  osd-devices: /dev/sdb
+  osd-reformat: 'True'
 ####ceph-radosgw
+  source: cloud:trusty-icehouse/havana
+  
+##Deploying OpenStack with Juju
 
 
 
+###Initialising Juju
 
+```
+juju sync-tools --debug
+```
 
+```
+juju bootstrap --upload-tools --debug
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###allocation of services
-
-
-
-### deploying services
-####Checkout the OpenStack charms locally
-$ mkdir -p $HOME/charms/precise
-$ cd $HOME/charms/precise
-$ for i in glance keystone nova-cloud-controller nova-compute openstack-dashboard cinder rabbitmq-server swift-storage swift-proxy mysql landscape-client;
-do
-	charm get $i
-done
-
-
-
-*Note: juju deploy deploys the service to a MAAS node and juju add-unit scales out the deployed service to additional nodes. By using constraints we can decide what node we deploy to or scale out to.
-*Note: to watch the output of juju running hooks on each node, open an additional terminal on the maas server and run:
-$  juju debug-log
-*Note: The OpenStack related services need the openstack.yaml files when we deploy them.
-
-####Deploy Swift services to swift storage nodes
-
-We can start by deploying Swift Storage on every node allocated to Swift Storage. From the directory where we have the openstack.yaml file and the charms directory we run the following commands:
-
-$ juju deploy --repository  . --config=openstack.yaml --constraints maas-name=swift-storage-01.customer.com local:precise/swift-storage
-
-$ juju set-constraints maas-name=swift-storage-02.customer.com
-$ juju add-unit swift-storage
-
-$ juju set-constraints maas-name=swift-storage-03.customer.com
-$ juju add-unit swift-storage
-
-$ juju set-constraints maas-name=swift-storage-04.customer.com
-$ juju add-unit swift-storage 
-
-$ juju set-constraints maas-name=swift-storage-05.customer.com
-$ juju add-unit swift-storage
-
-Clear the constraints:
-$ juju set-constraints maas-name=
-
-Make sure that we don’t overwrite sdc in future deployments:
-
-$ juju set swift-storage overwrite=false
-Deploy swift-proxy (Swift API)
-$ juju deploy --repository . --config=openstack.yaml --constraints maas-name=swift-api-01.customer.com local:precise/swift-proxy
-Deploy Nova Cloud Controller
-$ juju deploy --repository . --config=openstack.yaml --constraints maas-name=nova-cloud-controller-01.customer.com local:precise/nova-cloud-controller
-Find the ID of the nodes that will allocate each service
-If we need to deploy more than one service to a particular node, we will use the jitsu deploy-to command which works with node IDs instead of node names.
-
-With juju status we check the identification number assigned to each node and we will use it to deploy services to the desired nodes. If the output of juju status contains this:
-
-17:
-    agent-state: running
-    dns-name: nova-cloud-controller-01.customer.com7ba9-11e2-88c2-003048fd7032/
-    instance-id: /MAAS/api/1.0/nodes/node-6de875ee-7ba9-11e2-88c2-003048fd7032/
-    instance-state: unknown
-
-In this case we will use the node ID 17 to deploy to nova-cloud-controller-01.customer.com the desired services. One at a time, waiting for each to finish.
-
-Note: if the services below have a dedicated machine we will use juju deploy as in the above services, instead jitsu deploy-to
-Deploy Glance
-$ jitsu deploy-to <machine-id> --repository . --config=openstack.yaml local:precise/glance
-Deploy Cinder
-$ jitsu deploy-to <machine-id> --repository . --config=openstack.yaml local:precise/cinder
-Deploy MySQL
-$ jitsu deploy-to <machine-id> --repository . local:precise/mysql
-Deploy RabbitMQ Server
-$ jitsu deploy-to <machine-id> --repository . local:precise/rabbitmq-server
-Deploy Nova Compute
-$ jitsu deploy-to <machine-id> --repository . --config=openstack.yaml local:precise/nova-compute
-Deploy Keystone
-jitsu deploy-to <machine-id> --repository . --config=openstack.yaml local:precise/keystone
-Deploy Horizon
-jitsu deploy-to <machine-id> --repository . --config=openstack.yaml  local:precise/openstack-dashboard
-
+```
+juju status
+```
 
 ### Deploy the OpenStack Charms
+*Note: to watch the output of juju running hooks on each node, open an additional terminal on the maas server and run:
+$  juju debug-log
+
 
 ### Add relations between the OpenStack services
+
+Although the services are now deployed, they are not yet connected together. Each service currently exists in isolation. We use the `juju add-realtion`command
+
 Check juju status
 Verify that the proper machines are deployed and that there are no errors reported:
 
@@ -211,7 +174,7 @@ $ juju status
 Note: It is recommended to verify that each relation is added successfully using juju status  before moving to the next relation. Some relations may involve the same node, such as mysql, and may conflict if configuration is happening on the same node at the same time.
 Note: It is a good practice to check the juju log during the creation of the relations:
 $ juju debug-log
-	
+    
 Start adding relations between charms:
 
 $ juju add-relation keystone mysql
@@ -223,23 +186,23 @@ $ juju status keystone
 
 If the relations are set and the services started then we proceed with the rest.
 ```
-$ juju add-relation nova-cloud-controller mysql
-$ juju add-relation nova-cloud-controller rabbitmq-server
-$ juju add-relation nova-cloud-controller glance
-$ juju add-relation nova-cloud-controller keystone
-$ juju add-relation nova-compute mysql
-$ juju add-relation nova-compute rabbitmq-server
-$ juju add-relation nova-compute glance
-$ juju add-relation nova-compute nova-cloud-controller
-$ juju add-relation glance mysql
-$ juju add-relation glance keystone
-$ juju add-relation cinder keystone
-$ juju add-relation cinder mysql
-$ juju add-relation cinder rabbitmq-server
-$ juju add-relation cinder nova-cloud-controller
-$ juju add-relation openstack-dashboard keystone
-$ juju add-relation swift-proxy swift-storage
-$ juju add-relation swift-proxy keystone
+juju add-relation nova-cloud-controller mysql
+juju add-relation nova-cloud-controller rabbitmq-server
+juju add-relation nova-cloud-controller glance
+juju add-relation nova-cloud-controller keystone
+juju add-relation nova-compute mysql
+juju add-relation nova-compute rabbitmq-server
+juju add-relation nova-compute glance
+juju add-relation nova-compute nova-cloud-controller
+juju add-relation glance mysql
+juju add-relation glance keystone
+juju add-relation cinder keystone
+juju add-relation cinder mysql
+juju add-relation cinder rabbitmq-server
+juju add-relation cinder nova-cloud-controller
+juju add-relation openstack-dashboard keystone
+juju add-relation swift-proxy swift-storage
+juju add-relation swift-proxy keystone
 ```
 Finally, the output of juju status should show the all the relations.
 
@@ -249,6 +212,39 @@ Status
 PENDING | DONE
 Comments
 If there are issues or comments worth pointing out include them here, if not leave it blank.
+
+
+
+
+
+
+###Configuring access to Openstack
+#!/bin/bash
+
+set -e
+
+KEYSTONE_IP=`juju status keystone/0 | grep public-address | awk '{ print $2 }' | xargs host | grep -v alias | awk '{ print $4 }'`
+KEYSTONE_ADMIN_TOKEN=`juju ssh keystone/0 "sudo cat /etc/keystone/keystone.conf | grep admin_token" | sed -e '/^M/d' -e 's/.$//' | awk '{ print $3 }'`
+
+echo "Keystone IP: [${KEYSTONE_IP}]"
+echo "Keystone Admin Token: [${KEYSTONE_ADMIN_TOKEN}]"
+
+cat << EOF > ./nova.rc
+export SERVICE_ENDPOINT=http://${KEYSTONE_IP}:35357/v2.0/
+export SERVICE_TOKEN=${KEYSTONE_ADMIN_TOKEN}
+export OS_AUTH_URL=http://${KEYSTONE_IP}:35357/v2.0/
+export OS_USERNAME=admin
+export OS_PASSWORD=openstack
+export OS_TENANT_NAME=admin
+EOF
+
+juju scp ./nova.rc nova-cloud-controller/0:~
+
+
+
+
+
+
 
 Set up Access to Openstack and Start Booting VMs
 Once charms are deployed and relations are added, we can configure the private network on each compute node.
