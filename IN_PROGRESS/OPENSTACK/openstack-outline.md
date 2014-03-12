@@ -167,7 +167,20 @@ $  juju debug-log
 [[[[[[[[[[[[[[[deploy compute/storage]]]]]]]]]
 
 
-
+```
+juju deploy --to=0 juju-gui
+juju deploy rabbitmq-server
+juju deploy mysql
+juju deploy --config ${openstack_config} openstack-dashboard
+juju deploy --config ${openstack_config} keystone
+juju deploy --config ${openstack_config} ceph -n 3
+juju deploy --config ${openstack_config} nova-compute -n 3
+juju deploy --config ${openstack_config} quantum-gateway
+juju deploy --config ${openstack_config} cinder
+juju deploy --config ${openstack_config} nova-cloud-controller
+juju deploy --config ${openstack_config} glance
+juju deploy --config ${openstack_config} ceph-radosgw
+```
 
 
 ### Add relations between the OpenStack services
