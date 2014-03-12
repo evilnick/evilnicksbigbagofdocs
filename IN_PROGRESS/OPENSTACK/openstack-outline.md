@@ -104,8 +104,10 @@ log-level:
 
 cloud-controller:
     'Neutron' - Other options are now depricated.
+    
 quantum-security-groups: 
     'yes'
+    
 neutron-external-network: 
     Public_Network - This is an interface we will use for allowing access to the cloud, and will be defined later
 
@@ -135,12 +137,16 @@ enable-live-migration:
   
 fsid: 
     The fsid is simply a unique identifier. You can generate a suitable value by running `uuidgen`  which should return a value which looks like: a51ce9ea-35cd-4639-9b5e-668625d3c1d8
+    
 monitor-secret: 
     The monitor secret is a secret string used to authenticate access. There is advice on how to generate a suitable secure secret at [ceph][the ceph website]. A typical value would be `AQCk5+dR6NRDMRAAKUd3B8SdAD7jLJ5nbzxXXA==`
+    
 osd-devices: 
     This should point (in order of preference) to a device,partition or filename. In this case we will assume secondary device level storage located at `/dev/sdb`
+    
 osd-reformat: 
     We will set this to 'True', allowing ceph to reformat the drive on provisioning. 
+    
 ####ceph-radosgw
   source:
   
