@@ -149,7 +149,7 @@ Firstly, we need to fetch images and tools that Juju will use:
 ```
 juju sync-tools --debug
 ```
-Then we can 
+Then we can create the bootstrap instance
 
 ```
 juju bootstrap --upload-tools --debug
@@ -162,6 +162,12 @@ juju status
 ### Deploy the OpenStack Charms
 *Note: to watch the output of juju running hooks on each node, open an additional terminal on the maas server and run:
 $  juju debug-log
+
+[[[[[[[[[[[[[[[Deploy controllers]]]]]]]]]]]]]]]]
+[[[[[[[[[[[[[[[deploy compute/storage]]]]]]]]]
+
+
+
 
 
 ### Add relations between the OpenStack services
@@ -188,7 +194,8 @@ juju status mysql
 juju status keystone
 ```
 
-If the relations are set and the services started then we proceed with the rest.
+It can take a few moments for this service to settle. Although it is certainly possible to continue adding relations (Juju manages a queue for pending actions) it can be counterproductive in terms of the overall time taken.
+The following relations also need to be made:
 ```
 juju add-relation nova-cloud-controller mysql
 juju add-relation nova-cloud-controller rabbitmq-server
@@ -328,6 +335,7 @@ $ nova volume-attach test-server1 bbb5c5c2-a5fd-4fe1-89c2-d16fe91578d4 /dev/vdb
 
 Now we should be able to ssh the VM test-server1 from a server with the private key we created above and see that vdb appears in /proc/partitions
 
+[[[[[[[[[[[[[[[[[[[[notes]]]]]]]]]]]]]]]]]]]]]]]]]]]]
 slice up using maas tags:
 
 compute  
@@ -339,7 +347,7 @@ use tags to deploy
 
 talk config options.
 https://code.launchpad.net/~james-page/charms/bundles/openstack-on-openstack/bundle
-paul collins
+[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]
 
 
 [oog][http://docs.openstack.org/ops/]
